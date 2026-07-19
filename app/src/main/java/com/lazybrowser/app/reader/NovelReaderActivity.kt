@@ -1,10 +1,8 @@
 package com.lazybrowser.app.reader
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
@@ -14,9 +12,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.SeekBar
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.lazybrowser.app.databinding.ActivityNovelReaderBinding
 import kotlinx.coroutines.launch
@@ -34,21 +30,7 @@ class NovelReaderActivity : AppCompatActivity() {
     private var chapters: List<NovelReader.Chapter> = emptyList()
     private var currentChapterIndex: Int = -1
     private var toolbarVisible = false
-
-    // 自动滚动 + 眼动检测
     private var autoScrollManager: AutoScrollManager? = null
-    private var eyeTracker: EyeTrackerService? = null
-    private var eyeTrackingEnabled = false
-
-    private val cameraPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            startEyeTracking()
-        } else {
-            Toast.makeText(this, "需要摄像头权限才能使用眼动检测", Toast.LENGTH_SHORT).show()
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,11 +44,9 @@ class NovelReaderActivity : AppCompatActivity() {
         setupToolbar()
         setupSettingsPanel()
 
-        // 接收传入的 URL
         val url = intent.getStringExtra(EXTRA_URL) ?: ""
         currentBookUrl = intent.getStringExtra(EXTRA_BOOK_URL) ?: url
 
-        // 初始化自动滚动
         autoScrollManager = AutoScrollManager(binding.readerWebView) {
             runOnUiThread {
                 Toast.makeText(this, "已到本章末尾", Toast.LENGTH_SHORT).show()
@@ -80,9 +60,12 @@ class NovelReaderActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         autoScrollManager?.stop()
-        eyeTracker?.stop()
+        try {
+            binding.readerWebView.stopLoading()
+            binding.readerWebView.destroy()
+        } catch (_: Exception) {}
+        super.onDestroy()
     }
 
     // ── 沉浸模式 ─────────────────────────────────────────────────────
@@ -113,13 +96,11 @@ class NovelReaderActivity : AppCompatActivity() {
             cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
         }
 
-        // JavaScript Bridge
         binding.readerWebView.addJavascriptInterface(object {
             @JavascriptInterface
             fun onScroll(percent: Int) {
                 runOnUiThread {
                     binding.readProgress.text = "${percent}%"
-                    // 保存进度
                     reader.saveProgress(NovelReader.ReadProgress(
                         bookUrl = currentBookUrl,
                         chapterUrl = currentChapterUrl,
@@ -130,31 +111,23 @@ class NovelReaderActivity : AppCompatActivity() {
             }
 
             @JavascriptInterface
-            fun onNextChapter() {
-                runOnUiThread { goNextChapter() }
-            }
+            fun onNextChapter() { runOnUiThread { goNextChapter() } }
 
             @JavascriptInterface
-            fun onPrevChapter() {
-                runOnUiThread { goPrevChapter() }
-            }
+            fun onPrevChapter() { runOnUiThread { goPrevChapter() } }
 
             @JavascriptInterface
-            fun onToggleToolbar() {
-                runOnUiThread { toggleToolbar() }
-            }
+            fun onToggleToolbar() { runOnUiThread { toggleToolbar() } }
         }, "AndroidBridge")
 
         binding.readerWebView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                // 恢复阅读进度
                 restoreScrollPosition()
             }
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
                 val url = request?.url?.toString() ?: return false
-                // 检测是否是章节链接
                 if (isChapterLink(url)) {
                     loadChapter(url)
                     return true
@@ -173,7 +146,6 @@ class NovelReaderActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 binding.readerWebView.loadUrl(url)
-
                 binding.readerWebView.webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView?, pageUrl: String?) {
                         super.onPageFinished(view, pageUrl)
@@ -201,22 +173,14 @@ class NovelReaderActivity : AppCompatActivity() {
                                 ))
                             } catch (e: Exception) {
                                 binding.loadingView.visibility = View.GONE
-                                Toast.makeText(
-                                    this@NovelReaderActivity,
-                                    "解析失败: ${e.message}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Toast.makeText(this@NovelReaderActivity, "解析失败: ${e.message}", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
                 }
             } catch (e: Exception) {
                 binding.loadingView.visibility = View.GONE
-                Toast.makeText(
-                    this@NovelReaderActivity,
-                    "加载失败: ${e.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(this@NovelReaderActivity, "加载失败: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -240,8 +204,7 @@ class NovelReaderActivity : AppCompatActivity() {
         if (progress != null && progress.chapterUrl == currentChapterUrl) {
             val percent = progress.scrollPercent
             binding.readerWebView.evaluateJavascript(
-                "window.scrollTo(0, document.body.scrollHeight * $percent / 100);",
-                null
+                "window.scrollTo(0, document.body.scrollHeight * $percent / 100);", null
             )
         }
     }
@@ -259,57 +222,32 @@ class NovelReaderActivity : AppCompatActivity() {
         binding.btnPrevChapter.setOnClickListener { goPrevChapter() }
         binding.btnNextChapter.setOnClickListener { goNextChapter() }
 
-        // 加入书架
         binding.btnAddShelf.setOnClickListener {
             val title = binding.tvChapterTitle.text.toString()
-            reader.addBook(NovelReader.Book(
-                url = currentBookUrl,
-                title = title,
-                lastChapter = title
-            ))
+            reader.addBook(NovelReader.Book(url = currentBookUrl, title = title, lastChapter = title))
             binding.btnAddShelf.text = "已在书架"
             binding.btnAddShelf.alpha = 0.5f
             Toast.makeText(this, "已加入书架", Toast.LENGTH_SHORT).show()
         }
 
-        // 缓存全本
         binding.btnCacheBook.setOnClickListener {
             Toast.makeText(this, "开始缓存...", Toast.LENGTH_SHORT).show()
             binding.btnCacheBook.text = "缓存中..."
             binding.btnCacheBook.alpha = 0.5f
-            // TODO: 触发下载管理器缓存全本
         }
 
-        // 自动滚动
         binding.btnAutoScroll.setOnClickListener {
             autoScrollManager?.toggle()
             updateAutoScrollUI()
         }
 
-        // 长按调节速度
         binding.btnAutoScroll.setOnLongClickListener {
             showSpeedPicker()
             true
         }
 
-        // 眼动检测
-        binding.btnEyeTrack.setOnClickListener {
-            if (eyeTrackingEnabled) {
-                stopEyeTracking()
-            } else {
-                // 需要先开启自动滚动
-                if (autoScrollManager?.isActive != true) {
-                    autoScrollManager?.start()
-                    updateAutoScrollUI()
-                }
-                requestEyeTracking()
-            }
-        }
-
-        // 点击中间区域切换工具栏
         binding.tapZone.setOnClickListener { toggleToolbar() }
 
-        // 检查是否已在书架
         updateShelfButton()
         updateOfflineIndicator()
     }
@@ -321,9 +259,7 @@ class NovelReaderActivity : AppCompatActivity() {
     }
 
     private fun updateOfflineIndicator() {
-        // 检查是否已缓存
-        val isCached = false // TODO: 从下载管理器查询
-        binding.offlineIndicator.visibility = if (isCached) View.VISIBLE else View.GONE
+        binding.offlineIndicator.visibility = View.GONE
     }
 
     private fun toggleToolbar() {
@@ -332,15 +268,12 @@ class NovelReaderActivity : AppCompatActivity() {
         binding.bottomBar.animate().translationY(if (toolbarVisible) 0f else binding.bottomBar.height.toFloat()).setDuration(200).start()
         binding.topBar.visibility = if (toolbarVisible) View.VISIBLE else View.GONE
         binding.bottomBar.visibility = if (toolbarVisible) View.VISIBLE else View.GONE
-
         if (toolbarVisible) {
             window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
         } else {
             enterImmersiveMode()
         }
     }
-
-    // ── 自动滚动 UI ──────────────────────────────────────────────────
 
     private fun updateAutoScrollUI() {
         val active = autoScrollManager?.isActive == true
@@ -361,102 +294,29 @@ class NovelReaderActivity : AppCompatActivity() {
             .show()
     }
 
-    // ── 眼动检测 ─────────────────────────────────────────────────────
-
-    private fun requestEyeTracking() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
-            startEyeTracking()
-        } else {
-            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-        }
-    }
-
-    private fun startEyeTracking() {
-        eyeTracker = EyeTrackerService(this, this).apply {
-            setCallback(object : EyeTrackerService.Callback {
-                override fun onGazeLost() {
-                    runOnUiThread {
-                        autoScrollManager?.pauseByEyeTracker()
-                        updateEyeTrackUI(true)
-                    }
-                }
-
-                override fun onGazeRestored() {
-                    runOnUiThread {
-                        autoScrollManager?.resumeByEyeTracker()
-                        updateEyeTrackUI(false)
-                    }
-                }
-
-                override fun onTrackingStarted() {
-                    runOnUiThread {
-                        eyeTrackingEnabled = true
-                        updateEyeTrackUI(false)
-                        Toast.makeText(this@NovelReaderActivity, "眼动检测已开启", Toast.LENGTH_SHORT).show()
-                    }
-                }
-
-                override fun onTrackingFailed(reason: String) {
-                    runOnUiThread {
-                        eyeTrackingEnabled = false
-                        updateEyeTrackUI(false)
-                        Toast.makeText(this@NovelReaderActivity, "眼动检测失败: $reason", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            })
-            start()
-        }
-    }
-
-    private fun stopEyeTracking() {
-        eyeTracker?.stop()
-        eyeTracker = null
-        eyeTrackingEnabled = false
-        autoScrollManager?.resumeByEyeTracker()
-        updateEyeTrackUI(false)
-        Toast.makeText(this, "眼动检测已关闭", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun updateEyeTrackUI(gazeLost: Boolean) {
-        binding.btnEyeTrack.text = when {
-            !eyeTrackingEnabled -> "👁 眼动"
-            gazeLost -> "👁 暂停"
-            else -> "👁 检测中"
-        }
-        binding.btnEyeTrack.backgroundTintList = android.content.res.ColorStateList.valueOf(
-            Color.parseColor(
-                when {
-                    !eyeTrackingEnabled -> "#333333"
-                    gazeLost -> "#FF9800"
-                    else -> "#4CAF50"
-                }
-            )
-        )
-    }
-
     // ── 章节列表 ─────────────────────────────────────────────────────
 
     private fun showChapterList() {
         lifecycleScope.launch {
-            val chapterList = reader.extractChapterList(binding.readerWebView)
-            if (chapterList.isNotEmpty()) {
-                chapters = chapterList
-                currentChapterIndex = chapterList.indexOfFirst { it.url == currentChapterUrl }
-
-                val items = chapterList.mapIndexed { index, ch ->
-                    val prefix = if (index == currentChapterIndex) "▶ " else "  "
-                    "$prefix${ch.title}"
-                }.toTypedArray()
-
-                android.app.AlertDialog.Builder(this@NovelReaderActivity)
-                    .setTitle("目录 (${chapterList.size}章)")
-                    .setItems(items) { _, which ->
-                        currentChapterIndex = which
-                        loadChapter(chapterList[which].url)
-                    }
-                    .show()
+            try {
+                val chapterList = reader.extractChapterList(binding.readerWebView)
+                if (chapterList.isNotEmpty()) {
+                    chapters = chapterList
+                    currentChapterIndex = chapterList.indexOfFirst { it.url == currentChapterUrl }
+                    val items = chapterList.mapIndexed { index, ch ->
+                        val prefix = if (index == currentChapterIndex) "▶ " else "  "
+                        "$prefix${ch.title}"
+                    }.toTypedArray()
+                    android.app.AlertDialog.Builder(this@NovelReaderActivity)
+                        .setTitle("目录 (${chapterList.size}章)")
+                        .setItems(items) { _, which ->
+                            currentChapterIndex = which
+                            loadChapter(chapterList[which].url)
+                        }
+                        .show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@NovelReaderActivity, "获取目录失败", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -466,42 +326,33 @@ class NovelReaderActivity : AppCompatActivity() {
     private fun setupSettingsPanel() {
         val s = reader.settings
 
-        // 字号
         binding.fontSizeBar.progress = s.fontSize - 12
         binding.fontSizeText.text = "${s.fontSize}sp"
         binding.fontSizeBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                val size = progress + 12
-                binding.fontSizeText.text = "${size}sp"
+                binding.fontSizeText.text = "${progress + 12}sp"
             }
             override fun onStartTrackingTouch(sb: SeekBar?) {}
             override fun onStopTrackingTouch(sb: SeekBar?) {
-                val size = (sb?.progress ?: 0) + 12
-                reader.settings = reader.settings.copy(fontSize = size)
+                reader.settings = reader.settings.copy(fontSize = (sb?.progress ?: 0) + 12)
                 reloadContent()
             }
         })
 
-        // 行距
         binding.lineHeightBar.progress = ((s.lineHeight - 1.0f) * 10).toInt()
         binding.lineHeightText.text = "${s.lineHeight}"
         binding.lineHeightBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                val lh = 1.0f + progress / 10f
-                binding.lineHeightText.text = String.format("%.1f", lh)
+                binding.lineHeightText.text = String.format("%.1f", 1.0f + progress / 10f)
             }
             override fun onStartTrackingTouch(sb: SeekBar?) {}
             override fun onStopTrackingTouch(sb: SeekBar?) {
-                val lh = 1.0f + (sb?.progress ?: 0) / 10f
-                reader.settings = reader.settings.copy(lineHeight = lh)
+                reader.settings = reader.settings.copy(lineHeight = 1.0f + (sb?.progress ?: 0) / 10f)
                 reloadContent()
             }
         })
 
-        // 主题颜色
         setupThemeButtons()
-
-        // 翻页模式
         setupPageModeButtons()
     }
 
@@ -571,8 +422,6 @@ class NovelReaderActivity : AppCompatActivity() {
             null
         )
     }
-
-    // ── Companion ────────────────────────────────────────────────────
 
     companion object {
         const val EXTRA_URL = "novel_url"
