@@ -28,7 +28,7 @@ class DownloadManager(private val context: Context) {
         val bookUrl: String,
         val bookTitle: String,
         val chapterUrl: String,
-        val chapterTitle: String,
+        var chapterTitle: String,
         var status: Status = Status.PENDING,
         var progress: Int = 0,
         var totalChapters: Int = 0,

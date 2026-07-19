@@ -15,6 +15,7 @@ import android.widget.PopupMenu
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.lazybrowser.app.adblock.AdBlocker
+import com.lazybrowser.app.settings.SettingsActivity
 import com.lazybrowser.app.data.Bookmark
 import com.lazybrowser.app.data.HistoryEntry
 import com.lazybrowser.app.data.LazyDatabase
@@ -69,9 +70,6 @@ class MainActivity : AppCompatActivity() {
     // ── Toolbar ──────────────────────────────────────────────────────
 
     private fun setupToolbar() {
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayShowTitleEnabled(false)
-
         binding.btnBack.setOnClickListener { binding.webView.goBack() }
         binding.btnForward.setOnClickListener { binding.webView.goForward() }
 

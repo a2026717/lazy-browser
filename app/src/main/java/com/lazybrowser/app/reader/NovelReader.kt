@@ -17,7 +17,7 @@ import org.json.JSONObject
 class NovelReader(private val context: Context) {
 
     private val prefs: SharedPreferences =
-        context.getSharedPreferences("novel_reader", Context.MODE.PREFS_PRIVATE)
+        context.getSharedPreferences("novel_reader", Context.MODE_PRIVATE)
 
     // ── 阅读设置 ─────────────────────────────────────────────────────
 
