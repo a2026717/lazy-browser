@@ -27,6 +27,8 @@ import com.lazybrowser.app.home.LazyHomepage
 import com.lazybrowser.app.settings.SettingsManager
 import com.lazybrowser.app.tab.TabManager
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
@@ -377,8 +379,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun android.webkit.WebView.evaluateJavascriptAsync(script: String): String? {
-        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-            kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
+        return withContext(kotlinx.coroutines.Dispatchers.Main) {
+            suspendCancellableCoroutine { continuation ->
                 evaluateJavascript(script) { result ->
                     continuation.resume(result) {}
                 }
