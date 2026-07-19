@@ -2,6 +2,7 @@ package com.lazybrowser.app.reader
 
 import android.webkit.WebView
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 
 /**

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.webkit.WebView
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
