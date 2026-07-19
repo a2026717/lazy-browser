@@ -14,11 +14,6 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
-
-        // 只打包 arm64 架构，控制体积（ML Kit native 库）
-        ndk {
-            abiFilters += listOf("arm64-v8a")
-        }
     }
 
     buildTypes {
