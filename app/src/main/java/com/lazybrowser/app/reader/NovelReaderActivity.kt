@@ -1,8 +1,10 @@
 package com.lazybrowser.app.reader
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
@@ -11,7 +13,10 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.SeekBar
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.lazybrowser.app.databinding.ActivityNovelReaderBinding
 import kotlinx.coroutines.launch
@@ -30,6 +35,21 @@ class NovelReaderActivity : AppCompatActivity() {
     private var currentChapterIndex: Int = -1
     private var toolbarVisible = false
 
+    // 自动滚动 + 眼动检测
+    private var autoScrollManager: AutoScrollManager? = null
+    private var eyeTracker: EyeTrackerService? = null
+    private var eyeTrackingEnabled = false
+
+    private val cameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            startEyeTracking()
+        } else {
+            Toast.makeText(this, "需要摄像头权限才能使用眼动检测", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityNovelReaderBinding.inflate(layoutInflater)
@@ -46,9 +66,23 @@ class NovelReaderActivity : AppCompatActivity() {
         val url = intent.getStringExtra(EXTRA_URL) ?: ""
         currentBookUrl = intent.getStringExtra(EXTRA_BOOK_URL) ?: url
 
+        // 初始化自动滚动
+        autoScrollManager = AutoScrollManager(binding.readerWebView) {
+            runOnUiThread {
+                Toast.makeText(this, "已到本章末尾", Toast.LENGTH_SHORT).show()
+                updateAutoScrollUI()
+            }
+        }
+
         if (url.isNotEmpty()) {
             loadChapter(url)
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        autoScrollManager?.stop()
+        eyeTracker?.stop()
     }
 
     // ── 沉浸模式 ─────────────────────────────────────────────────────
@@ -137,38 +171,52 @@ class NovelReaderActivity : AppCompatActivity() {
         binding.loadingView.visibility = View.VISIBLE
 
         lifecycleScope.launch {
-            // 先加载页面
-            binding.readerWebView.loadUrl(url)
+            try {
+                binding.readerWebView.loadUrl(url)
 
-            // 等页面加载完成后提取内容
-            binding.readerWebView.webViewClient = object : WebViewClient() {
-                override fun onPageFinished(view: WebView?, pageUrl: String?) {
-                    super.onPageFinished(view, pageUrl)
-                    lifecycleScope.launch {
-                        val content = reader.extractContent(binding.readerWebView)
-                        val html = reader.renderChapter(content, currentBookUrl)
-                        binding.readerWebView.loadDataWithBaseURL(
-                            currentChapterUrl, html, "text/html", "UTF-8", null
-                        )
-                        binding.tvChapterTitle.text = content.title
-                        binding.loadingView.visibility = View.GONE
+                binding.readerWebView.webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView?, pageUrl: String?) {
+                        super.onPageFinished(view, pageUrl)
+                        lifecycleScope.launch {
+                            try {
+                                val content = reader.extractContent(binding.readerWebView)
+                                val html = reader.renderChapter(content, currentBookUrl)
+                                binding.readerWebView.loadDataWithBaseURL(
+                                    currentChapterUrl, html, "text/html", "UTF-8", null
+                                )
+                                binding.tvChapterTitle.text = content.title
+                                binding.loadingView.visibility = View.GONE
 
-                        // 更新进度
-                        reader.saveProgress(NovelReader.ReadProgress(
-                            bookUrl = currentBookUrl,
-                            chapterUrl = currentChapterUrl,
-                            chapterTitle = content.title,
-                            scrollPercent = 0
-                        ))
+                                reader.saveProgress(NovelReader.ReadProgress(
+                                    bookUrl = currentBookUrl,
+                                    chapterUrl = currentChapterUrl,
+                                    chapterTitle = content.title,
+                                    scrollPercent = 0
+                                ))
 
-                        // 加入书架
-                        reader.addBook(NovelReader.Book(
-                            url = currentBookUrl,
-                            title = content.title,
-                            lastChapter = content.title
-                        ))
+                                reader.addBook(NovelReader.Book(
+                                    url = currentBookUrl,
+                                    title = content.title,
+                                    lastChapter = content.title
+                                ))
+                            } catch (e: Exception) {
+                                binding.loadingView.visibility = View.GONE
+                                Toast.makeText(
+                                    this@NovelReaderActivity,
+                                    "解析失败: ${e.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                binding.loadingView.visibility = View.GONE
+                Toast.makeText(
+                    this@NovelReaderActivity,
+                    "加载失败: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
@@ -221,15 +269,41 @@ class NovelReaderActivity : AppCompatActivity() {
             ))
             binding.btnAddShelf.text = "已在书架"
             binding.btnAddShelf.alpha = 0.5f
-            android.widget.Toast.makeText(this, "已加入书架", android.widget.Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "已加入书架", Toast.LENGTH_SHORT).show()
         }
 
         // 缓存全本
         binding.btnCacheBook.setOnClickListener {
-            android.widget.Toast.makeText(this, "开始缓存...", android.widget.Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "开始缓存...", Toast.LENGTH_SHORT).show()
             binding.btnCacheBook.text = "缓存中..."
             binding.btnCacheBook.alpha = 0.5f
             // TODO: 触发下载管理器缓存全本
+        }
+
+        // 自动滚动
+        binding.btnAutoScroll.setOnClickListener {
+            autoScrollManager?.toggle()
+            updateAutoScrollUI()
+        }
+
+        // 长按调节速度
+        binding.btnAutoScroll.setOnLongClickListener {
+            showSpeedPicker()
+            true
+        }
+
+        // 眼动检测
+        binding.btnEyeTrack.setOnClickListener {
+            if (eyeTrackingEnabled) {
+                stopEyeTracking()
+            } else {
+                // 需要先开启自动滚动
+                if (autoScrollManager?.isActive != true) {
+                    autoScrollManager?.start()
+                    updateAutoScrollUI()
+                }
+                requestEyeTracking()
+            }
         }
 
         // 点击中间区域切换工具栏
@@ -264,6 +338,102 @@ class NovelReaderActivity : AppCompatActivity() {
         } else {
             enterImmersiveMode()
         }
+    }
+
+    // ── 自动滚动 UI ──────────────────────────────────────────────────
+
+    private fun updateAutoScrollUI() {
+        val active = autoScrollManager?.isActive == true
+        binding.btnAutoScroll.text = if (active) "⏸ 暂停" else "▶ 自动"
+        binding.btnAutoScroll.backgroundTintList = android.content.res.ColorStateList.valueOf(
+            Color.parseColor(if (active) "#1A73E8" else "#333333")
+        )
+    }
+
+    private fun showSpeedPicker() {
+        val speeds = arrayOf("慢速 (15px/s)", "中速 (30px/s)", "快速 (60px/s)", "极速 (120px/s)")
+        android.app.AlertDialog.Builder(this)
+            .setTitle("滚动速度")
+            .setItems(speeds) { _, which ->
+                autoScrollManager?.setSpeed(which + 1)
+                Toast.makeText(this, "速度已调整", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+
+    // ── 眼动检测 ─────────────────────────────────────────────────────
+
+    private fun requestEyeTracking() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            startEyeTracking()
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    private fun startEyeTracking() {
+        eyeTracker = EyeTrackerService(this, this).apply {
+            setCallback(object : EyeTrackerService.Callback {
+                override fun onGazeLost() {
+                    runOnUiThread {
+                        autoScrollManager?.pauseByEyeTracker()
+                        updateEyeTrackUI(true)
+                    }
+                }
+
+                override fun onGazeRestored() {
+                    runOnUiThread {
+                        autoScrollManager?.resumeByEyeTracker()
+                        updateEyeTrackUI(false)
+                    }
+                }
+
+                override fun onTrackingStarted() {
+                    runOnUiThread {
+                        eyeTrackingEnabled = true
+                        updateEyeTrackUI(false)
+                        Toast.makeText(this@NovelReaderActivity, "眼动检测已开启", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onTrackingFailed(reason: String) {
+                    runOnUiThread {
+                        eyeTrackingEnabled = false
+                        updateEyeTrackUI(false)
+                        Toast.makeText(this@NovelReaderActivity, "眼动检测失败: $reason", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            })
+            start()
+        }
+    }
+
+    private fun stopEyeTracking() {
+        eyeTracker?.stop()
+        eyeTracker = null
+        eyeTrackingEnabled = false
+        autoScrollManager?.resumeByEyeTracker()
+        updateEyeTrackUI(false)
+        Toast.makeText(this, "眼动检测已关闭", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateEyeTrackUI(gazeLost: Boolean) {
+        binding.btnEyeTrack.text = when {
+            !eyeTrackingEnabled -> "👁 眼动"
+            gazeLost -> "👁 暂停"
+            else -> "👁 检测中"
+        }
+        binding.btnEyeTrack.backgroundTintList = android.content.res.ColorStateList.valueOf(
+            Color.parseColor(
+                when {
+                    !eyeTrackingEnabled -> "#333333"
+                    gazeLost -> "#FF9800"
+                    else -> "#4CAF50"
+                }
+            )
+        )
     }
 
     // ── 章节列表 ─────────────────────────────────────────────────────

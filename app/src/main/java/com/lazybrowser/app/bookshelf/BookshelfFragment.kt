@@ -129,6 +129,9 @@ class BookshelfFragment(
         } else {
             ListAdapter(books)
         }
+        // 防止内存抖动
+        recyclerView?.setItemViewCacheSize(20)
+        recyclerView?.hasFixedSize()
     }
 
     private fun filterBooks(query: String) {

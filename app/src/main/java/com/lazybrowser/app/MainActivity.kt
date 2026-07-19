@@ -493,16 +493,19 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        binding.webView.onResume()
+        try { binding.webView.onResume() } catch (_: Exception) {}
     }
 
     override fun onPause() {
-        binding.webView.onPause()
+        try { binding.webView.onPause() } catch (_: Exception) {}
         super.onPause()
     }
 
     override fun onDestroy() {
-        binding.webView.destroy()
+        try {
+            binding.webView.stopLoading()
+            binding.webView.destroy()
+        } catch (_: Exception) {}
         super.onDestroy()
     }
 }
