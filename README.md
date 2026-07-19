@@ -98,3 +98,4 @@ LazyBrowser/
 ## 📄 License
 
 MIT
+# LazyBrowser
