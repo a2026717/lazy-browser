@@ -54,9 +54,11 @@ dependencies {
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
-    // Eye Tracking (CameraX + ML Kit Face Detection)
+    // CameraX
     implementation("androidx.camera:camera-core:1.3.1")
     implementation("androidx.camera:camera-camera2:1.3.1")
     implementation("androidx.camera:camera-lifecycle:1.3.1")
+
+    // ML Kit
     implementation("com.google.mlkit:face-detection:16.1.5")
 }

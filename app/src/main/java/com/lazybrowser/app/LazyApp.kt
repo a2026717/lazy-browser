@@ -53,7 +53,7 @@ class LazyApp : Application() {
      */
     private fun fixWebViewMultiprocess() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val processName = getProcessName()
+            val processName = resolveProcessName()
             if (processName != packageName) {
                 // 子进程 WebView 数据目录隔离
                 WebView.setDataDirectorySuffix(processName?.split(":")?.lastOrNull() ?: "webview")
@@ -88,9 +88,9 @@ class LazyApp : Application() {
         }
     }
 
-    private fun getProcessName(): String? {
+    private fun resolveProcessName(): String? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            getProcessName()
+            android.app.Application.getProcessName()
         } else {
             try {
                 val pid = android.os.Process.myPid()
