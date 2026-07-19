@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="8dp">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- 封面 -->
+        <TextView
+            android:id="@+id/bookCover"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:text="📕"
+            android:textSize="36sp"
+            android:gravity="center"
+            android:background="@drawable/bg_book_cover" />
+
+        <!-- 角标 -->
+        <TextView
+            android:id="@+id/bookBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:text="最近"
+            android:textSize="10sp"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/bg_badge"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <!-- 书名 -->
+    <TextView
+        android:id="@+id/bookTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="书名"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:layout_marginTop="6dp" />
+
+</LinearLayout>

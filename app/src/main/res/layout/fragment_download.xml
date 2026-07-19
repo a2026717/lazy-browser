@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FAFAFA">
+
+    <!-- 顶部标签栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:orientation="horizontal"
+        android:background="#FFFFFF"
+        android:elevation="2dp">
+
+        <TextView
+            android:id="@+id/tabDownloading"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="正在下载"
+            android:textSize="15sp"
+            android:textColor="#1A73E8"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center_vertical"
+            android:background="#EEE" />
+
+        <TextView
+            android:id="@+id/tabCompleted"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="已完成"
+            android:textSize="15sp"
+            android:textColor="#999"
+            android:gravity="center" />
+    </LinearLayout>
+
+    <!-- 下载列表 -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/downloadRecycler"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="12dp" />
+
+        <!-- 空状态 -->
+        <LinearLayout
+            android:id="@+id/downloadEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📥"
+                android:textSize="48sp"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="暂无下载任务"
+                android:textSize="16sp"
+                android:textColor="#999" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="阅读页点击「缓存全本」即可离线阅读"
+                android:textSize="13sp"
+                android:textColor="#BBB"
+                android:layout_marginTop="6dp" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- 批量操作栏 (长按后显示) -->
+    <LinearLayout
+        android:id="@+id/batchBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#333333"
+        android:paddingHorizontal="16dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/batchCount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="已选 0 项"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btnBatchExport"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="导出"
+            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#1A73E8"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btnBatchDelete"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="删除"
+            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#E53935"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btnCancelBatch"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="取消"
+            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#666666" />
+    </LinearLayout>
+
+</LinearLayout>

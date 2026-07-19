@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F0E8">
+
+    <!-- WebView (阅读区) -->
+    <WebView
+        android:id="@+id/readerWebView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- 点击区域 (中间点击切换工具栏) -->
+    <View
+        android:id="@+id/tapZone"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- 离线可用标识 (顶部极小) -->
+    <TextView
+        android:id="@+id/offlineIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="8dp"
+        android:text="📡 离线可用"
+        android:textSize="10sp"
+        android:textColor="#4CAF50"
+        android:background="#CCFFFFFF"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="2dp"
+        android:visibility="gone" />
+
+    <!-- 加载中 -->
+    <FrameLayout
+        android:id="@+id/loadingView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#F5F0E8"
+        android:visibility="gone"
+        android:gravity="center">
+
+        <ProgressBar
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="80dp"
+            android:text="正在解析章节..."
+            android:textColor="#999"
+            android:textSize="14sp" />
+    </FrameLayout>
+
+    <!-- 顶部栏 -->
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_gravity="top"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#E6000000"
+        android:paddingHorizontal="12dp"
+        android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_arrow_back"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:tint="#FFFFFF"
+            android:contentDescription="返回" />
+
+        <TextView
+            android:id="@+id/tvChapterTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="章节标题"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:layout_marginHorizontal="12dp" />
+
+        <ImageButton
+            android:id="@+id/btnChapterList"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_tabs"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:tint="#FFFFFF"
+            android:contentDescription="目录" />
+    </LinearLayout>
+
+    <!-- 底部栏 -->
+    <LinearLayout
+        android:id="@+id/bottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:background="#E6000000"
+        android:padding="12dp"
+        android:visibility="gone">
+
+    <!-- 加入书架 / 缓存全本 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="8dp">
+
+            <Button
+                android:id="@+id/btnAddShelf"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:text="+ 书架"
+                android:textSize="13sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#1A73E8"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/btnCacheBook"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:text="📥 缓存全本"
+                android:textSize="13sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#4CAF50"
+                android:layout_marginStart="4dp" />
+        </LinearLayout>
+
+        <!-- 上一章/下一章 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="8dp">
+
+            <Button
+                android:id="@+id/btnPrevChapter"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:text="← 上一章"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#333333"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/readProgress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0%"
+                android:textColor="#AAAAAA"
+                android:textSize="13sp"
+                android:layout_marginHorizontal="12dp" />
+
+            <Button
+                android:id="@+id/btnNextChapter"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:text="下一章 →"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#333333"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+        <!-- 设置按钮行 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/btnModeScroll"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:text="滚动"
+                android:textSize="12sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#1A73E8"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/btnModeFlip"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:text="翻页"
+                android:textSize="12sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#333333"
+                android:layout_marginStart="4dp" />
+
+            <Button
+                android:id="@+id/btnSettings"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:text="⚙ 设置"
+                android:textSize="12sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#333333"
+                android:layout_marginStart="4dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 设置面板 (从底部弹出) -->
+    <ScrollView
+        android:id="@+id/settingsPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="#F0F0F0"
+        android:visibility="gone"
+        android:maxHeight="400dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- 字号 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="字号"
+                android:textSize="14sp"
+                android:textColor="#666" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="A"
+                    android:textSize="12sp" />
+
+                <SeekBar
+                    android:id="@+id/fontSizeBar"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="24"
+                    android:progress="6"
+                    android:layout_marginHorizontal="8dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="A"
+                    android:textSize="20sp" />
+
+                <TextView
+                    android:id="@+id/fontSizeText"
+                    android:layout_width="48dp"
+                    android:layout_height="wrap_content"
+                    android:text="18sp"
+                    android:textSize="12sp"
+                    android:gravity="end" />
+            </LinearLayout>
+
+            <!-- 行距 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="行距"
+                android:textSize="14sp"
+                android:textColor="#666" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp">
+
+                <SeekBar
+                    android:id="@+id/lineHeightBar"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="20"
+                    android:progress="8" />
+
+                <TextView
+                    android:id="@+id/lineHeightText"
+                    android:layout_width="48dp"
+                    android:layout_height="wrap_content"
+                    android:text="1.8"
+                    android:textSize="12sp"
+                    android:gravity="end" />
+            </LinearLayout>
+
+            <!-- 主题 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="主题"
+                android:textSize="14sp"
+                android:textColor="#666"
+                android:layout_marginBottom="8dp" />
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/themeGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+</FrameLayout>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="?android:attr/windowBackground">
+
+    <!-- 标题区 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="📚 我的书架"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvBookCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0本"
+            android:textSize="13sp"
+            android:textColor="#999" />
+    </LinearLayout>
+
+    <!-- 继续阅读卡片 -->
+    <LinearLayout
+        android:id="@+id/btnContinueReading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_continue_card"
+        android:padding="16dp"
+        android:layout_marginBottom="20dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="继续阅读"
+            android:textSize="12sp"
+            android:textColor="#1A73E8"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tvContinueTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="书名"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/tvContinueChapter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="上次读到..."
+            android:textSize="13sp"
+            android:textColor="#666"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
+
+    <!-- 书架列表 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/bookshelfRecycler"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="80dp" />
+
+    <!-- 空状态 -->
+    <LinearLayout
+        android:id="@+id/bookshelfEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📖"
+            android:textSize="48sp"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="书架空空如也"
+            android:textSize="16sp"
+            android:textColor="#999" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="打开小说站 → 点「阅读模式」\n自动识别并加入书架"
+            android:textSize="13sp"
+            android:textColor="#BBB"
+            android:gravity="center"
+            android:layout_marginTop="8dp" />
+    </LinearLayout>
+
+</LinearLayout>
